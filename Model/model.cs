@@ -15,14 +15,11 @@ namespace FileFragmentationApp.Model
         public string InputText { get; set; }
         public int TotalFragments { get; set; }
 
-        // ✅ Create Input File
         public void SaveInputToFile(string text)
         {
             InputText = text;
             File.WriteAllText(InputFilePath, InputText);
         }
-
-        // ✅ Fragment the input text into files
         public void FragmentText()
         {
             if (Directory.Exists(FragmentFolder))
@@ -49,15 +46,12 @@ namespace FileFragmentationApp.Model
             }
         }
 
-        // ✅ Verify a specific fragment file
         public string GetFragmentContent(string fileName)
         {
             if (File.Exists(fileName))
                 return File.ReadAllText(fileName);
             return null;
         }
-
-        // ✅ Defragment files back to one file
         public void DefragmentFiles()
         {
             if (!Directory.Exists(FragmentFolder)) return;
@@ -71,8 +65,6 @@ namespace FileFragmentationApp.Model
 
             File.WriteAllText(OutputFilePath, sb.ToString());
         }
-
-        // ✅ Compare input and output files
         public bool CompareInputAndOutput()
         {
             if (!File.Exists(InputFilePath) || !File.Exists(OutputFilePath))
@@ -82,8 +74,6 @@ namespace FileFragmentationApp.Model
             string output = File.ReadAllText(OutputFilePath);
             return input.Equals(output, StringComparison.Ordinal);
         }
-
-        // ✅ Cleanup all files
         public void Cleanup()
         {
             if (Directory.Exists(FragmentFolder)) Directory.Delete(FragmentFolder, true);
