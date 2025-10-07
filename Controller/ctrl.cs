@@ -19,6 +19,8 @@ namespace FileFragmentationApp.Controller
 
         public void Run()
         {
+           // FragmentController f;
+            Cleanup();
             bool repeat = true;
             while (repeat)
             {
