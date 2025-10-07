@@ -1,6 +1,6 @@
 using System;
-using System.IO;
 using System.Text;
+using System.IO;
 using FileFragmentationApp.Model;
 using FileFragmentationApp.View;
 
@@ -19,9 +19,9 @@ namespace FileFragmentationApp.Controller
 
         public void Run()
         {
-           // FragmentController f;
-            Cleanup();
+            model.Cleanup();
             bool repeat = true;
+
             while (repeat)
             {
                 try
@@ -40,7 +40,7 @@ namespace FileFragmentationApp.Controller
                 var ans = view.Prompt("\nDelete all created files and run again? (Y/N): ").Trim().ToUpper();
                 if (ans == "Y" || ans == "YES")
                 {
-                    Cleanup();
+                    model.Cleanup();
                     Console.Clear();
                 }
                 else
@@ -65,8 +65,7 @@ namespace FileFragmentationApp.Controller
                 sb.AppendLine(line);
             }
 
-            model.InputText = sb.ToString();
-            File.WriteAllText(model.InputFilePath, model.InputText);
+            model.SaveInputToFile(sb.ToString());
             view.Show($"Created '{model.InputFilePath}' ({model.InputText.Length} chars).\n");
         }
 
@@ -78,31 +77,12 @@ namespace FileFragmentationApp.Controller
                 throw new ArgumentException("Fragment size must be positive.");
 
             model.FragmentSize = size;
+            model.FragmentText();
 
-            if (Directory.Exists(model.FragmentFolder))
-                Directory.Delete(model.FragmentFolder, true);
-            Directory.CreateDirectory(model.FragmentFolder);
-
-            string content = model.InputText ?? string.Empty;
-            model.FragmentFiles.Clear();
-
-            if (content.Length == 0)
+            if (model.FragmentFiles.Count == 0)
             {
                 view.Show("Input text empty.");
                 return;
-            }
-
-            model.TotalFragments = (content.Length + size - 1) / size;
-            int padLength = Math.Max(1, model.TotalFragments.ToString().Length);
-
-            for (int i = 0; i < model.TotalFragments; i++)
-            {
-                int start = i * size;
-                int len = Math.Min(size, content.Length - start);
-                string frag = content.Substring(start, len);
-                string fileName = Path.Combine(model.FragmentFolder, (i + 1).ToString("D" + padLength) + ".txt");
-                File.WriteAllText(fileName, frag);
-                model.FragmentFiles.Add(fileName);
             }
 
             view.Show($"Created {model.FragmentFiles.Count} fragment(s):");
@@ -125,8 +105,9 @@ namespace FileFragmentationApp.Controller
                         ? idx.ToString("D" + padLength) + ".txt"
                         : input + ".txt");
 
-            if (File.Exists(filePath))
-                view.Show($"File '{filePath}' exists:\n{File.ReadAllText(filePath)}");
+            string content = model.GetFragmentContent(filePath);
+            if (content != null)
+                view.Show($"File '{filePath}' exists:\n{content}");
             else
                 view.ShowError("File not found.");
         }
@@ -134,47 +115,19 @@ namespace FileFragmentationApp.Controller
         private void Defragment()
         {
             view.Show("=== Step 4: Defragmentation ===");
-            if (!Directory.Exists(model.FragmentFolder)) { view.ShowError("No fragments folder."); return; }
-
-            var files = Directory.GetFiles(model.FragmentFolder, "*.txt");
-            Array.Sort(files);
-
-            var sb = new StringBuilder();
-            foreach (var f in files)
-                sb.Append(File.ReadAllText(f));
-
-            File.WriteAllText(model.OutputFilePath, sb.ToString());
+            model.DefragmentFiles();
             view.Show($"Output saved to '{model.OutputFilePath}'.\n");
         }
 
         private void CompareFiles()
         {
             view.Show("=== Step 5: Compare Files ===");
-            if (!File.Exists(model.InputFilePath) || !File.Exists(model.OutputFilePath))
-            {
-                view.ShowError("Missing files.");
-                return;
-            }
-
-            string input = File.ReadAllText(model.InputFilePath);
-            string output = File.ReadAllText(model.OutputFilePath);
-
-            if (input.Equals(output, StringComparison.Ordinal))
+            bool identical = model.CompareInputAndOutput();
+            if (identical)
                 view.Show("SUCCESS: Files are identical.");
             else
                 view.ShowError("FAILURE: Files differ.");
         }
-
-        private void Cleanup()
-        {
-            try
-            {
-                if (Directory.Exists(model.FragmentFolder)) Directory.Delete(model.FragmentFolder, true);
-                if (File.Exists(model.InputFilePath)) File.Delete(model.InputFilePath);
-                if (File.Exists(model.OutputFilePath)) File.Delete(model.OutputFilePath);
-                view.Show("All files deleted.");
-            }
-            catch (Exception ex) { view.ShowError(ex.Message); }
-        }
     }
 }
+
