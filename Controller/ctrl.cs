@@ -91,25 +91,33 @@ namespace FileFragmentationApp.Controller
 
         private void VerifyFile()
         {
-            view.Show("=== Step 3: Verify File ===");
-            if (model.TotalFragments == 0) { view.Show("No fragments."); return; }
+            while (true) {
+                view.Show("=== Step 3: Verify File ===");
+                if (model.TotalFragments == 0) { view.Show("No fragments."); return; }
 
-            int padLength = Math.Max(1, model.TotalFragments.ToString().Length);
-            string input = view.Prompt("Enter file name or number: ").Trim();
-            if (string.IsNullOrEmpty(input)) return;
+                int padLength = Math.Max(1, model.TotalFragments.ToString().Length);
+                string input = view.Prompt("Enter file name or number: ").Trim();
+                if (string.IsNullOrEmpty(input)) return;
 
-            string filePath = input.EndsWith(".txt")
-                ? Path.Combine(model.FragmentFolder, input)
-                : Path.Combine(model.FragmentFolder,
-                    int.TryParse(input, out int idx)
-                        ? idx.ToString("D" + padLength) + ".txt"
-                        : input + ".txt");
+                string filePath = input.EndsWith(".txt")
+                    ? Path.Combine(model.FragmentFolder, input)
+                    : Path.Combine(model.FragmentFolder,
+                        int.TryParse(input, out int idx)
+                            ? idx.ToString("D" + padLength) + ".txt"
+                            : input + ".txt");
 
-            string content = model.GetFragmentContent(filePath);
-            if (content != null)
-                view.Show($"File '{filePath}' exists:\n{content}");
-            else
-                view.ShowError("File not found.");
+                string content = model.GetFragmentContent(filePath);
+                if (content != null)
+                {
+                    view.Show($"File '{filePath}' exists:\n{content}");
+                    return;
+                }
+                else
+                {
+                    view.ShowError("File not found.");
+                }
+                    
+            }
         }
 
         private void Defragment()
